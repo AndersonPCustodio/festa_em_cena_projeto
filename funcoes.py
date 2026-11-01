@@ -64,3 +64,52 @@ def padronizar_strings(df: pd.DataFrame) -> tuple:
     print("=" * 40 + "\n")
 
     return df_limpo, categorias_vazias_preenchidas, categorias_nao_vazias_alteradas
+
+def validar_dados_numericos(df: pd.DataFrame) -> tuple:
+    df_validado = df.copy()
+    
+    problemas_quantidade = 0
+    problemas_preco = 0
+    
+    linhas_afetadas = set()
+    
+    for idx, linha in df_validado.iterrows():
+        problema_na_linha = False
+        
+        qtd_original = linha.get('quantidade')
+        try:
+            qtd_num = int(float(qtd_original))
+            if qtd_num <= 0:
+                problemas_quantidade += 1
+                problema_na_linha = True
+        except (ValueError, TypeError):
+            problemas_quantidade += 1
+            problema_na_linha = True
+            
+        preco_original = linha.get('preco_unitario')
+        if pd.isna(preco_original) or str(preco_original).strip() == "":
+            problemas_preco += 1
+            problema_na_linha = True
+        else:
+            try:
+                preco_num = float(preco_original)
+                if preco_num < 0:
+                    problemas_preco += 1
+                    problema_na_linha = True
+            except (ValueError, TypeError):
+                problemas_preco += 1
+                problema_na_linha = True
+                
+        if problema_na_linha:
+            linhas_afetadas.add(idx)
+            
+    total_pedidos_afetados = len(linhas_afetadas)
+    
+    print("=== SPRINT 3: VALIDAÇÃO DE NÚMEROS E NULOS ===")
+    print(f"Pedidos com problemas na Quantidade: {problemas_quantidade}")
+    print(f"Pedidos com problemas no Preço Unitário: {problemas_preco}")
+    print(f"Total absoluto de pedidos afetados (sem sobreposição): {total_pedidos_afetados}")
+    print("=" * 46 + "\n")
+    
+    return df_validado, problemas_quantidade, problemas_preco, total_pedidos_afetados
+
