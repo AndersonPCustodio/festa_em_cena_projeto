@@ -184,3 +184,26 @@ def formatar_temporal(df: pd.DataFrame) -> tuple:
     
     return df_temporal, datas_invalidas_ou_vazias
 
+def explorar_canais_e_periodos(df: pd.DataFrame) -> None:
+    df_exploracao = df.copy()
+    
+    print("=== SPRINT 5: RELATÓRIO DE EXPLORAÇÃO DE DADOS ===")
+    
+    filtro_canal_valido = df_exploracao['canal_venda'].isin(['Mercado', 'Loja física', 'Web'])
+    df_canais = df_exploracao[filtro_canal_valido]
+    exclusoes_canal = len(df_exploracao) - len(df_canais)
+    
+    print("Contagem de Pedidos por Canal de Venda (Todos os Status):")
+    print(df_canais['canal_venda'].value_counts())
+    print(f"Pedidos excluídos nesta contagem (canal não reconhecido): {exclusoes_canal}\n")
+    
+    df_periodo = df_exploracao[df_exploracao['venda_ano'].notna() & df_exploracao['venda_mes'].notna()]
+    exclusoes_periodo = len(df_exploracao) - len(df_periodo)
+    
+    df_periodo['ano_mes'] = df_periodo.apply(lambda r: f"{int(r['venda_ano'])}-{int(r['venda_mes']):02d}", axis=1)
+    
+    print("Contagem de Pedidos por Período (Ano-Mês):")
+    print(df_periodo['ano_mes'].value_counts().sort_index())
+    print(f"Pedidos excluídos nesta contagem (datas de venda inválidas): {exclusoes_periodo}")
+    print("=" * 50 + "\n")
+
