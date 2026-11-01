@@ -113,3 +113,74 @@ def validar_dados_numericos(df: pd.DataFrame) -> tuple:
     
     return df_validado, problemas_quantidade, problemas_preco, total_pedidos_afetados
 
+from datetime import datetime
+
+def investigar_regra_negocio(df: pd.DataFrame) -> tuple:
+    df_analise = df.copy()
+    
+    filtro_sem_entrega = pd.isna(df_analise['data_entrega']) | (df_analise['data_entrega'].astype(str).str.strip() == "")
+    df_sem_entrega = df_analise[filtro_sem_entrega]
+    
+    df_sem_entrega_cancelados = df_sem_entrega[df_sem_entrega['status_pedido'].astype(str).str.strip().str.lower() == 'cancelado']
+    cont_sem_entrega_cancelados = len(df_sem_entrega_cancelados)
+    
+    df_sem_entrega_outros = df_sem_entrega[df_sem_entrega['status_pedido'].astype(str).str.strip().str.lower() != 'cancelado']
+    cont_sem_entrega_outros = len(df_sem_entrega_outros)
+    
+    hipotese_verdadeira = (cont_sem_entrega_outros == 0)
+    
+    exemplos_contraexemplo = df_sem_entrega_outros.head(3)[['pedido_id', 'status_pedido', 'data_entrega']].to_dict(orient='records')
+    
+    print("=== SPRINT 4 (PARTE 1): LÓGICA DE REGRA DE NEGÓCIO ===")
+    print(f"Pedidos sem entrega E Cancelados: {cont_sem_entrega_cancelados}")
+    print(f"Pedidos sem entrega COM OUTROS STATUS: {cont_sem_entrega_outros}")
+    print(f"A hipótese de que toda entrega vazia é um pedido cancelado é: {hipotese_verdadeira}")
+    
+    if exemplos_contraexemplo:
+        print("\nExemplos de contraexemplos encontrados na base:")
+        for ex in exemplos_contraexemplo:
+            print(f" -> ID Pedido: {ex['pedido_id']} | Status: {ex['status_pedido']} | Data Entrega: {ex['data_entrega']}")
+    print("=" * 54 + "\n")
+    
+    return cont_sem_entrega_cancelados, cont_sem_entrega_outros, hipotese_verdadeira
+
+def formatar_temporal(df: pd.DataFrame) -> tuple:
+    df_temporal = df.copy()
+    datas_invalidas_ou_vazias = 0
+    
+    anos, meses, dias, horas, datas_br = [], [], [], [], []
+    
+    for idx, linha in df_temporal.iterrows():
+        data_orig = linha.get('data_venda')
+        
+        if pd.isna(data_orig) or str(data_orig).strip() == "":
+            datas_invalidas_ou_vazias += 1
+            anos.append(None); meses.append(None); dias.append(None); horas.append(None); datas_br.append("Data Inválida")
+            continue
+            
+        try:
+            data_limpa = str(data_orig).split('.')[0].strip()
+            dt_objeto = datetime.strptime(data_limpa, "%Y-%m-%d %H:%M:%S")
+            
+            anos.append(dt_objeto.year)
+            meses.append(dt_objeto.month)
+            dias.append(dt_objeto.day)
+            horas.append(dt_objeto.hour)
+            datas_br.append(dt_objeto.strftime("%d/%m/%Y"))
+            
+        except Exception:
+            datas_invalidas_ou_vazias += 1
+            anos.append(None); meses.append(None); dias.append(None); horas.append(None); datas_br.append("Data Inválida")
+            
+    df_temporal['venda_ano'] = anos
+    df_temporal['venda_mes'] = meses
+    df_temporal['venda_dia'] = dias
+    df_temporal['venda_hora'] = horas
+    df_temporal['venda_data_br'] = datas_br
+    
+    print("=== SPRINT 4 (PARTE 2): FORMATTAÇÃO TEMPORAL ===")
+    print(f"Total de datas de venda inválidas ou vazias puladas/marcadas: {datas_invalidas_ou_vazias}")
+    print("=" * 48 + "\n")
+    
+    return df_temporal, datas_invalidas_ou_vazias
+
